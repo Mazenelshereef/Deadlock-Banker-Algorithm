@@ -1,128 +1,184 @@
 #include <iostream>
+
 #include <vector>
 using namespace std;
 
-void printSequence(vector<int> processesSequence){
-    for (int i = 0; i < processesSequence.size(); i++){
-        cout << "Process " << processesSequence[i] << " has ended" << endl;
+void printResources(vector<int>available, vector<vector<int>>needed, vector<vector<int>>allocation)
+{
+ cout<<"Available resources:\n";
+ char start='A';
+ for(int i=0;i<available.size();i++){
+    cout<<start<<" ";
+    start++;
+ }
+ cout<<endl;
+ for(int i=0;i<available.size();i++) cout<<available[i]<<" ";
+ cout<<endl<<endl<<endl;
+
+ cout<<"Needed resources:\n";
+ start='A';
+ for(int i=0;i<available.size();i++){
+    cout<<start<<" ";
+    start++;
+ }
+ cout<<endl;
+ for(int i=0;i<needed.size();i++){
+    for(int j=0;j<available.size();j++){
+        cout<<needed[i][j]<<" ";
     }
-}
-void printStatus(vector<int> processesSequence, int num){
-    if (processesSequence.size() < num){
-        cout << "There is a possibility for a deadlock occurrence" << endl;
+    cout<<endl;
+ }
+ cout<<endl<<endl<<endl;
+ cout<<"allocated resources:\n";
+ start='A';
+ for(int i=0;i<available.size();i++){
+    cout<<start<<" ";
+    start++;
+ }
+ cout<<endl;
+ for(int i=0;i<allocation.size();i++){
+    for(int j=0;j<available.size();j++){
+        cout<<allocation[i][j]<<" ";
     }
-    else{
-        cout << "No deadlock" << endl;
-    }
+    cout<<endl;
+ }
+  cout<<endl<<endl<<endl;
 }
 
-pair<vector<int>, bool> bankerAlogrithm(int numOfProcesses, int numOfResources, vector<int>available, vector<vector<int>>needed, vector<vector<int>>allocation) {
+bool bankerAlogrithm(vector<int>available, vector<vector<int>>needed, vector<vector<int>>allocation,bool print) {
     pair<vector<int>, bool> result;
-    int counter = 0;
-    bool processGotWhatItWants = true;
-    vector<int> done;
-    bool isDone = false;
 
-    while (true)
+    int n = 5, m = 3, counter = 0;
+    bool hasProcess = true;
+    vector<int> done;
+    bool isdone = false;
+
+    while (true)//start of the alogrithm
     {
         int detect = 0;
-        for (int i = 0; i < numOfProcesses; i++){ 
-            for (vector<int>::iterator iterator = done.begin(); iterator != done.end(); iterator++){
-                if (*iterator == i){
-                    isDone = true;
+        for (int i = 0; i < n; i++)
+        { // processes
+
+            for (vector<int>::iterator it = done.begin();
+                it != done.end();
+                it++)
+            {
+                if (*it == i)
+                {
+                    isdone = true;
+
                 }
             }
-            if (isDone == true){ isDone = false; continue;} //ignore process which finished execution
+            if (isdone == true) {
+                isdone = false;
+                continue;
+            }
 
 
-            for (int j = 0; j < numOfResources; j++){                             
-                if (needed[i][j] > available[j]) {    // avilable is not enough
-                    processGotWhatItWants = false;
+            for (int j = 0; j < m; j++)
+            {                                    // resourses
+                if (needed[i][j] > available[j]) // avilable is not enough
+                {
+                    hasProcess = false;
                     break;
                 }
             }
 
-            if (processGotWhatItWants == true) // got all it wants
+            if (hasProcess == true) // got all it wants
             {
-                detect++;//counter to know if any process got all resources it wants 
-                counter++;//counter to check how many proccess has ended
+                detect++;//counter to know if any process got what it want in this loop
+                counter++;//counter for how many proccesses has ended
                 done.push_back(i);
-
-                for (int j = 0; j < numOfResources; j++){
+                for (int j = 0; j < m; j++)
+                {
                     available[j] += allocation[i][j];
+                    allocation[i][j]=0;
+                    needed[i][j]=0;
+                }
+                if(print==true){
+                    cout<<endl<<"p"<<i<<" has done."<<endl;
+                    printResources(available,needed,allocation);
                 }
                 i = -1;
             }
-            processGotWhatItWants = true;
-        }
+            hasProcess = true;
 
-        if (counter >= numOfProcesses){
-            result.first = done;
-            result.second = true;
-            return result;
+
+        }
+        if (counter >= n)
+        {
+            if(print==true)cout<<"no Deadlock."<<endl;
+            return true;
         }
         if (detect == 0) {
-            result.first = done;
-            result.second = false;
-            return result;
+            if(print==true)cout<<"There is Deadlock!!."<<endl;
+            return false;
         }
     }
 
 }
 
-void recover(int NumOfProcess, int numOfResources, vector<int>available, vector<vector<int>>needed, vector<vector<int>>allocation) {
+void recover(vector<int>&available, vector<vector<int>>&needed, vector<vector<int>>&allocation) {
     int processNo = 0;
     int max = 0;
     int sum = 0;
-    while (!bankerAlogrithm(NumOfProcess, numOfResources, available, needed, allocation).second){
-        for (int i = 0; i < needed.size(); i++){
-            for (int j = 0; j < available.size(); j++){
+    while (!bankerAlogrithm(available, needed, allocation,false))
+    {
+        for (int i = 0; i < needed.size(); i++)
+        {
+            for (int j = 0; j < available.size(); j++)
+            {
                 sum += allocation[i][j];
             }
-            if (sum > max){
+            if (sum > max)
+            {
                 max = sum;
                 processNo = i;
             }
             sum = 0;
         }
-        for (int j = 0; j < available.size(); j++){
+        for (int j = 0; j < available.size(); j++)
+        {
             available[j] += allocation[processNo][j];
             needed[processNo][j] += allocation[processNo][j];
             allocation[processNo][j] = 0;
         }
+        cout<<endl<<"P"<<processNo<<" has Released\n"<<endl;
+        printResources(available,needed,allocation);
+        bankerAlogrithm(available, needed, allocation,true);
     }
+
 }
 
 int main()
 {
-    int numOfProcesses, numOfResources;
-    bool isInSafeState;
-    cout << "Enter the number of processes \n";
-    cin >> numOfProcesses;
-    cout << "Enter the number of resources \n";
-    cin >> numOfResources;
+    int n = 5, m = 3;
+    vector<int> available(m);
+    vector<vector<int>> needed(n, vector<int>(m, 0));
+    vector<vector<int>> maximum(n, vector<int>(m, 0));
+    vector<vector<int>> allocation(n, vector<int>(m, 0));
 
-    vector<int> available(numOfResources);
-    vector<vector<int>> needed(numOfProcesses, vector<int>(numOfResources, 0));
-    vector<vector<int>> maximum(numOfProcesses, vector<int>(numOfResources, 0));
-    vector<vector<int>> allocation(numOfProcesses, vector<int>(numOfResources, 0));
+    bool safe;
+
+
     cout << "Enter the initial number of available resources (space seperated):\n";
-    for (int i = 0; i < numOfResources; i++)
+    for (int i = 0; i < m; i++)
     {
         cin >> available[i];
     }
     cout << "Enter the maximum need for each process in a seperate line:\n";
-    for (int i = 0; i < numOfProcesses; i++)
+    for (int i = 0; i < n; i++)
     {
-        for (int j = 0; j < numOfResources; j++)
+
+        for (int j = 0; j < m; j++)
         {
             cin >> maximum[i][j];
         }
     }
     cout << "Enter the allocated resources for each process in a seperate line:\n";
-    for (int i = 0; i < numOfProcesses; i++)
+    for (int i = 0; i < n; i++)
     {
-        for (int j = 0; j < numOfResources; j++)
+        for (int j = 0; j < m; j++)
         {
             cin >> allocation[i][j];
             available[j] -= allocation[i][j];
@@ -130,21 +186,19 @@ int main()
     }
 
     //calculate needed
-    for (int i = 0; i < numOfProcesses; i++)
+    for (int i = 0; i < n; i++)
     {
-        for (int j = 0; j < numOfResources; j++)
+        for (int j = 0; j < m; j++)
         {
             needed[i][j] = maximum[i][j] - allocation[i][j];
         }
     }
 
-    isInSafeState = bankerAlogrithm(numOfProcesses, numOfResources, available, needed, allocation).second;
-    printSequence(bankerAlogrithm(numOfProcesses, numOfResources, available, needed, allocation).first);
-    printStatus(bankerAlogrithm(numOfProcesses, numOfResources, available, needed, allocation).first, numOfProcesses);
+    safe = bankerAlogrithm(available, needed, allocation,true);
 
     //taking commands
     string command;
-    int process, * resources = new int[numOfResources];
+    int process, * resources = new int[m];
     while (true)
     {
         cout << "Enter command:\n";
@@ -153,84 +207,95 @@ int main()
         {
             return 0; // terminate program
         }
-        else if (command == "Recover"){
-            if (!isInSafeState){
-                recover(numOfProcesses, numOfResources, available, needed, allocation);
+        else if (command == "Recover")
+        {
+            if (!safe)
+            {
+                recover(available, needed, allocation);
+                safe=true;
             }
-            else{
-                cout << "System already safe, no need to recover!\n";
+            else
+            {
+                cout << "System already safe, no need to recover\n";
             }
             continue;
         }
+        if(command!="RQ"||command!="RL"){cout<<"Invalid Command.!"<<endl;continue;}
 
-        //check safe state
-        if (!isInSafeState){
-            cout << "System has deadlock, please recover first!\n";
-        }
         cin >> process;
-        for (int i = 0; i < numOfResources; i++){
+        for (int i = 0; i < m; i++)
+        {
             cin >> resources[i];
         }
-        if (command == "RQ"){
+        //check safe state
+        if (!safe)
+        {
+            cout << "System has deadlock, please recover first\n";
+            continue;
+        }
+
+        if (command == "RQ")
+        {
             bool isValid = true;
             string message;
             // check request <= needed
-            for (int i = 0; i < numOfResources; i++){
-                if (resources[i] > needed[process][i]){
+            for (int i = 0; i < m; i++)
+            {
+                if (resources[i] > needed[process][i])
+                {
                     isValid = false;
-                    message = "ERROR: Process has exceeded its maximum claim!\n";
+                    message = "ERROR: process has exceeded its maximum claim\n";
                 }
             }
             //check request <= available
-            for (int i = 0; i < numOfResources; i++){
+            for (int i = 0; i < m; i++)
+            {
                 if (resources[i] > available[i])
                 {
                     isValid = false;
-                    message = "ERROR: Not enough resources available!\n";
+                    message = "ERROR: not enough resources available\n";
                 }
             }
-            if (!isValid){
+            if (!isValid)
+            {
                 cout << message;
                 continue;
             }
             //request can be granted
-            for (int i = 0; i < numOfResources; i++){
+            for (int i = 0; i < m; i++)
+            {
                 allocation[process][i] += resources[i];
                 needed[process][i] -= resources[i];
                 available[i] -= resources[i];
             }
             //execute safety algorithm
-            isInSafeState = bankerAlogrithm(numOfProcesses, numOfResources, available, needed, allocation).second;
+            safe = bankerAlogrithm(available, needed, allocation,true);
         }
-        else if (command == "RL"){
+        else if (command == "RL")
+        {
             bool isValid = true;
             //check release <= allocation
-            for (int i = 0; i < numOfResources; i++)
+            for (int i = 0; i < m; i++)
             {
                 if (resources[i] > allocation[process][i])
                 {
-                    cout << "ERROR: resources exceeded allocation!\n";
+                    cout << "ERROR: resources exceeded allocation\n";
                     isValid = false;
                     break;
                 }
             }
-            if (!isValid){
+            if (!isValid)
+            {
                 continue;
             }
             // release granted
-            for (int i = 0; i < numOfResources; i++){
+            for (int i = 0; i < m; i++)
+            {
                 available[i] += resources[i];
                 needed[process][i] += resources[i];
                 allocation[process][i] -= resources[i];
             }
-            isInSafeState = bankerAlogrithm(numOfProcesses, numOfResources, available, needed, allocation).second;
-        }
-        else if (command == "Quit") {
-            cout << "The system is exited.. " << endl;
-            return 0;
-        }
-        else{
-            cout << "INVALID COMMAND!\n";
+            safe = bankerAlogrithm(available, needed, allocation,true);
         }
     }
 }
